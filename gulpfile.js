@@ -102,13 +102,6 @@ gulp.task('bump', function() {
     .pipe(gulp.dest('./src'));
 });
 
-gulp.task('watch', function() {
-  gulp.watch(scssSourcePath, ['styles']);
-
-  // TODO benoit
-  // watchBundles();
-});
-
 gulp.task('default', function() {
   return runSequence('clean', ['styles', 'scripts', 'copy-manifest']);
 });
