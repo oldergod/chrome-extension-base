@@ -1,25 +1,27 @@
-var isProd = false;
-var gulp = require('gulp'),
-  babelify = require('babelify'),
-  browserify = require('browserify'),
-  buffer = require('vinyl-buffer'),
-  bump = require('gulp-bump'),
-  del = require('del'),
-  gutil = require('gulp-util'),
-  jshint = require('gulp-jshint'),
-  license = require('gulp-license'),
-  runSequence = require('run-sequence'),
-  sass = require('gulp-sass'),
-  source = require('vinyl-source-stream'),
-  sourcemaps = require('gulp-sourcemaps'),
-  uglify = require('gulp-uglify'),
-  zip = require('gulp-zip');
+'use strict';
 
-var scssSourcePath = './src/styles/**/*.scss';
-var jsSourcePath = './src/scripts/**/*.js';
-var contentScriptEntryPath = './src/scripts/contentScript.js';
+let isProd = false;
+import gulp from 'gulp';
+import babelify from 'babelify';
+import browserify from 'browserify';
+import buffer from 'vinyl-buffer';
+import bump from 'gulp-bump';
+import del from 'del';
+import gutil from 'gulp-util';
+import jshint from 'gulp-jshint';
+import license from 'gulp-license';
+import runSequence from 'run-sequence';
+import sass from 'gulp-sass';
+import source from 'vinyl-source-stream';
+import sourcemaps from 'gulp-sourcemaps';
+import uglify from 'gulp-uglify';
+import zip from 'gulp-zip';
 
-gulp.task('jshint', function() {
+const scssSourcePath = './src/styles/**/*.scss';
+const jsSourcePath = './src/scripts/**/*.js';
+const contentScriptEntryPath = './src/scripts/contentScript.js';
+
+gulp.task('jshint', () => {
   return gulp.src([jsSourcePath, './gulpfile.js'])
     .pipe(jshint({
       browser: true,
@@ -33,11 +35,9 @@ gulp.task('jshint', function() {
     .pipe(jshint.reporter('jshint-stylish'));
 });
 
-gulp.task('clean', function(done) {
-  return del(['./target'], done);
-});
+gulp.task('clean', done => del(['./target'], done));
 
-gulp.task('styles', function() {
+gulp.task('styles', () => {
   return gulp.src(scssSourcePath)
     .pipe(sass({
       outputStyle: isProd ? 'compressed' : 'expanded'
@@ -49,14 +49,14 @@ gulp.task('styles', function() {
     .pipe(gulp.dest('./target/styles'));
 });
 
-gulp.task('scripts', function() {
-  var bundler = browserify(contentScriptEntryPath, {
+gulp.task('scripts', () => {
+  const bundler = browserify(contentScriptEntryPath, {
     debug: !isProd
   }).transform(babelify, {
     presets: ["es2015"]
   });
 
-  var b = bundler.bundle()
+  let b = bundler.bundle()
     .on('log', gutil.log.bind(gutil, 'Browserify Log'))
     .on('error', gutil.log.bind(gutil, 'Browserify Error'))
     .pipe(source('cs.js'))
@@ -77,18 +77,18 @@ gulp.task('scripts', function() {
   })).pipe(gulp.dest('./target/scripts'));
 });
 
-gulp.task('copy-manifest', function() {
+gulp.task('copy-manifest', () => {
   return gulp.src('./src/manifest.json')
     .pipe(gulp.dest('./target'));
 });
 
-gulp.task('build', ['styles', 'scripts', 'copy-manifest'], function() {
+gulp.task('build', ['styles', 'scripts', 'copy-manifest'], () => {
   gulp.src('./target/**')
     .pipe(zip('target.zip'))
     .pipe(gulp.dest('./target'));
 });
 
-gulp.task('bump', function() {
+gulp.task('bump', () => {
   gulp.src('./package.json')
     .pipe(bump({
       type: 'patch'
@@ -102,11 +102,11 @@ gulp.task('bump', function() {
     .pipe(gulp.dest('./src'));
 });
 
-gulp.task('default', function() {
+gulp.task('default', () => {
   return runSequence('clean', ['styles', 'scripts', 'copy-manifest']);
 });
 
-gulp.task('prod', function() {
+gulp.task('prod', () => {
   isProd = true;
   return runSequence('clean', 'bump', 'build');
 });
