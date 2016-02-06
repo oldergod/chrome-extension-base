@@ -4,18 +4,25 @@
   "description": "xxx",
   "manifest_version": 2,
   "version": "0.0.1",
-  "content_scripts": [
-    {
-      "matches": [
-        "https://*"
-      ],
-      "js": [
-        "scripts/cs.js"
-      ],
-      "css": [
-        "styles/cs.css"
-      ],
-      "run_at": "document_end"
-    }
-  ]
+  "content_scripts": [{
+    "matches": [
+      "https://*"
+    ],
+    "js": [
+      "scripts/contentScript.js"
+    ],
+    "css": [
+      "styles/contentScript.css"
+    ],
+    "run_at": "document_end"
+  }],
+  "background": [{
+    "js": [
+      "scripts/background.js"
+    ],
+    "css": [
+      "styles/background.css"
+    ],
+    "run_at": "document_end"
+  }]
 }

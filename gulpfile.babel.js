@@ -15,14 +15,70 @@ import sass from 'gulp-sass';
 import source from 'vinyl-source-stream';
 import sourcemaps from 'gulp-sourcemaps';
 import uglify from 'gulp-uglify';
+import watchify from 'watchify';
 import zip from 'gulp-zip';
 
 const scssSourcePath = './src/styles/**/*.scss';
 const jsSourcePath = './src/scripts/**/*.js';
-const contentScriptEntryPath = './src/scripts/contentScript.js';
+const gulpfile = './gulpfile.babel.js';
+
+const bundles = {
+  'background': {
+    url: './src/scripts/background.js',
+    name: 'background.js',
+    bundle: null
+  },
+  'contentScript': {
+    url: './src/scripts/contentScript.js',
+    name: 'contentScript.js',
+    bundle: null
+  }
+};
+
+function createBundle(url) {
+  return browserify(url, {
+    debug: !isProd
+  }).transform(babelify, {
+    presets: ["es2015"]
+  });
+};
+
+function watchBundles() {
+  let watch = null;
+  for (let bundleName in bundles) {
+    watch = watchify(bundles[bundleName].bundle);
+    watch.on('update', buildBundle.bind(this, bundleName));
+  }
+};
+
+function buildBundle(bundleName) {
+  const job = bundles[bundleName];
+  const bundle = job.bundle;
+  const name = job.name;
+
+  let b = bundle.bundle()
+    .on('log', gutil.log.bind(gutil, 'Browserify Log'))
+    .on('error', gutil.log.bind(gutil, 'Browserify Error'))
+    .pipe(source(name))
+    .pipe(buffer());
+
+  if (isProd) {
+    b = b.pipe(uglify().on('error', gutil.log.bind(gutil, 'Uglify Error')));
+  } else {
+    b = b.pipe(sourcemaps.init({
+        loadMaps: true
+      }))
+      .pipe(sourcemaps.write('./'));
+  }
+
+  return b.pipe(license('MIT', {
+    organization: 'Benoit Quenaudon',
+    tiny: true
+  })).pipe(gulp.dest('./target/scripts'));
+};
 
 gulp.task('jshint', () => {
-  return gulp.src([jsSourcePath, './gulpfile.js'])
+  return gulp.src([jsSourcePath, gulpfile])
     .pipe(jshint({
       browser: true,
       curly: true,
@@ -49,32 +105,16 @@ gulp.task('styles', () => {
     .pipe(gulp.dest('./target/styles'));
 });
 
-gulp.task('scripts', () => {
-  const bundler = browserify(contentScriptEntryPath, {
-    debug: !isProd
-  }).transform(babelify, {
-    presets: ["es2015"]
-  });
-
-  let b = bundler.bundle()
-    .on('log', gutil.log.bind(gutil, 'Browserify Log'))
-    .on('error', gutil.log.bind(gutil, 'Browserify Error'))
-    .pipe(source('cs.js'))
-    .pipe(buffer());
-
-  if (isProd) {
-    b = b.pipe(uglify().on('error', gutil.log));
-  } else {
-    b = b.pipe(sourcemaps.init({
-        loadMaps: true
-      }))
-      .pipe(sourcemaps.write('./'));
+gulp.task('scripts', function() {
+  for (let bundleName in bundles) {
+    buildBundle(bundleName);
   }
+});
 
-  return b.pipe(license('MIT', {
-    organization: 'Benoit Quenaudon',
-    tiny: true
-  })).pipe(gulp.dest('./target/scripts'));
+gulp.task('watch', function() {
+  gulp.watch(scssSourcePath, ['styles']);
+
+  watchBundles();
 });
 
 gulp.task('copy-manifest', () => {
@@ -82,7 +122,15 @@ gulp.task('copy-manifest', () => {
     .pipe(gulp.dest('./target'));
 });
 
-gulp.task('build', ['styles', 'scripts', 'copy-manifest'], () => {
+(function() {
+  for (let bundleName in bundles) {
+    bundles[bundleName].bundle = createBundle(bundles[bundleName].url);
+  }
+})();
+
+var allTasks = ['styles', 'scripts', 'copy-manifest'];
+
+gulp.task('build', allTasks, () => {
   gulp.src('./target/**')
     .pipe(zip('target.zip'))
     .pipe(gulp.dest('./target'));
@@ -102,11 +150,11 @@ gulp.task('bump', () => {
     .pipe(gulp.dest('./src'));
 });
 
-gulp.task('default', () => {
-  return runSequence('clean', ['styles', 'scripts', 'copy-manifest']);
+gulp.task('default', cb => {
+  return runSequence('clean', allTasks, 'watch', cb);
 });
 
-gulp.task('prod', () => {
+gulp.task('prod', cb => {
   isProd = true;
-  return runSequence('clean', 'bump', 'build');
+  return runSequence('clean', 'bump', 'build', cb);
 });
