@@ -22,7 +22,8 @@ import zip from 'gulp-zip';
 
 const scssSourcePath = './src/styles/**/*.scss';
 const jsSourcePath = './src/scripts/**/*.js';
-const gulpfile = './gulpfile.babel.js';
+const gulpfilePath = './gulpfile.babel.js';
+const manifestPath = './src/manifest.json';
 
 const bundles = {
   'background': {
@@ -85,7 +86,7 @@ function buildBundle(bundleName) {
 };
 
 gulp.task('jshint', () => {
-  return gulp.src([jsSourcePath, gulpfile])
+  return gulp.src([jsSourcePath, gulpfilePath])
     .pipe(jshint({
       browser: true,
       curly: true,
@@ -131,12 +132,13 @@ gulp.task('watch', function() {
   ]).on('change', livereload.reload);
 
   gulp.watch(scssSourcePath, ['styles']);
+  gulp.watch(manifestPath, ['copy-manifest']);
 
   watchBundles();
 });
 
 gulp.task('copy-manifest', () => {
-  let p = gulp.src('./src/manifest.json');
+  let p = gulp.src(manifestPath);
   if (isProd) {
     p = p.pipe(chromeManifest({
       background: {
