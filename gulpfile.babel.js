@@ -6,10 +6,12 @@ import babelify from 'babelify';
 import browserify from 'browserify';
 import buffer from 'vinyl-buffer';
 import bump from 'gulp-bump';
+import chromeManifest from 'gulp-chrome-manifest';
 import del from 'del';
 import gutil from 'gulp-util';
 import jshint from 'gulp-jshint';
 import license from 'gulp-license';
+import livereload from 'gulp-livereload';
 import runSequence from 'run-sequence';
 import sass from 'gulp-sass';
 import source from 'vinyl-source-stream';
@@ -26,6 +28,11 @@ const bundles = {
   'background': {
     url: './src/scripts/background.js',
     name: 'background.js',
+    bundle: null
+  },
+  'chromereload': {
+    url: './src/scripts/chromereload.js',
+    name: 'chromereload.js',
     bundle: null
   },
   'contentScript': {
@@ -91,7 +98,12 @@ gulp.task('jshint', () => {
     .pipe(jshint.reporter('jshint-stylish'));
 });
 
-gulp.task('clean', done => del(['./target'], done));
+gulp.task('clean', done => {
+  if (isProd) {
+    delete bundles.chromereload;
+  }
+  return del(['./target'], done);
+});
 
 gulp.task('styles', () => {
   return gulp.src(scssSourcePath)
@@ -112,14 +124,30 @@ gulp.task('scripts', function() {
 });
 
 gulp.task('watch', function() {
+  livereload.listen();
+  gulp.watch([
+    'src/scripts/**/*.js',
+    'src/styles/**/*'
+  ]).on('change', livereload.reload);
+
   gulp.watch(scssSourcePath, ['styles']);
 
   watchBundles();
 });
 
 gulp.task('copy-manifest', () => {
-  return gulp.src('./src/manifest.json')
-    .pipe(gulp.dest('./target'));
+  let p = gulp.src('./src/manifest.json');
+  if (isProd) {
+    p = p.pipe(chromeManifest({
+      background: {
+        target: 'scripts/background.js',
+        exclude: [
+          'scripts/chromereload.js'
+        ]
+      }
+    }));
+  }
+  return p.pipe(gulp.dest('./target'));
 });
 
 (function() {

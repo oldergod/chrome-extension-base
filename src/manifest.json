@@ -4,6 +4,16 @@
   "description": "xxx",
   "manifest_version": 2,
   "version": "0.0.1",
+  "background": {
+    "scripts": [
+      "scripts/background.js",
+      "scripts/chromereload.js"
+    ],
+    "styles": [
+      "styles/background.css"
+    ],
+    "run_at": "document_end"
+  },
   "content_scripts": [{
     "matches": [
       "https://*"
@@ -13,15 +23,6 @@
     ],
     "css": [
       "styles/contentScript.css"
-    ],
-    "run_at": "document_end"
-  }],
-  "background": [{
-    "js": [
-      "scripts/background.js"
-    ],
-    "css": [
-      "styles/background.css"
     ],
     "run_at": "document_end"
   }]
